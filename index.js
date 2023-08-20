@@ -31,8 +31,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        const usersCollection = client.db('Moon_Tech_Redux_Thunk').collection('UsersJobBox');
-        const jobsCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobsForJobBox');
+        const usersCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobBoxUsers');
+        const jobsCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobBoxJobs');
 
 
         app.post("/user", async (req, res) => {
