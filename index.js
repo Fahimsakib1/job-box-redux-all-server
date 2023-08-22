@@ -125,13 +125,15 @@ async function run() {
         app.get("/jobs", async (req, res) => {
             const cursor = jobsCollection.find({});
             const result = await cursor.toArray();
-            res.send({ status: true, data: result });
+            res.send(result);
         });
 
         app.get("/job/:id", async (req, res) => {
             const id = req.params.id;
+            console.log(id);
             const result = await jobsCollection.findOne({ _id: new ObjectId(id) });
-            res.send({ status: true, data: result });
+            console.log("Result", result);
+            res.send(result);
         });
 
         app.post("/job", async (req, res) => {
