@@ -54,10 +54,15 @@ async function run() {
             const userId = req.body.userId;
             const jobId = req.body.jobId;
             const email = req.body.email;
+            const applyStatus = req.body.applyStatus;
 
             const filter = { _id: new ObjectId(jobId) };
             const updateDoc = {
-                $push: { applicants: { id: new ObjectId(userId), email } },
+                $push: {
+                    applicantDetails: { id: new ObjectId(userId), 
+                    email: email }
+                },
+                $set: { applyStatus: applyStatus }
             };
             const result = await jobsCollection.updateOne(filter, updateDoc);
             if (result.acknowledged) {
@@ -71,12 +76,14 @@ async function run() {
             const jobId = req.body.jobId;
             const email = req.body.email;
             const question = req.body.question;
+
             const filter = { _id: new ObjectId(jobId) };
+
             const updateDoc = {
                 $push: {
                     queries: {
                         id: new ObjectId(userId),
-                        email,
+                        email: email,
                         question: question,
                         reply: [],
                     },
@@ -94,7 +101,9 @@ async function run() {
             const reply = req.body.reply;
             console.log(reply);
             console.log(userId);
+
             const filter = { "queries.id": new ObjectId(userId) };
+
             const updateDoc = {
                 $push: {
                     "queries.$[user].reply": reply,
@@ -116,9 +125,10 @@ async function run() {
 
         app.get("/applied-jobs/:email", async (req, res) => {
             const email = req.params.email;
-            const query = { applicants: { $elemMatch: { email: email } } };
-            const cursor = jobsCollection.find(query).project({ applicants: 0 });
+            const query = { applicantDetails: { $elemMatch: { email: email } } };
+            const cursor = jobsCollection.find(query).project({ applicantDetails: 0 });
             const result = await cursor.toArray();
+            console.log("Result:", result);
             res.send({ status: true, data: result });
         });
 
@@ -130,9 +140,7 @@ async function run() {
 
         app.get("/job/:id", async (req, res) => {
             const id = req.params.id;
-            console.log(id);
             const result = await jobsCollection.findOne({ _id: new ObjectId(id) });
-            console.log("Result", result);
             res.send(result);
         });
 
