@@ -51,16 +51,35 @@ async function run() {
         });
 
         app.patch("/apply", async (req, res) => {
-            const userId = req.body.userId;
-            const jobId = req.body.jobId;
-            const email = req.body.email;
+            const userId = req.body.userId; //sign up korar por userId
+            const jobId = req.body.jobId; //job er Id
+            const email = req.body.email; //sign up korar por user email
+            const address = req.body.address;
+            const city = req.body.city;
+            const country = req.body.country;
+            const firstName = req.body.firstName;
+            const lastName = req.body.lastName;
+            const gender = req.body.gender;
+            const jobAppliedTime = req.body.jobAppliedTime;
+            const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJob
+
             const applyStatus = req.body.applyStatus;
 
             const filter = { _id: new ObjectId(jobId) };
             const updateDoc = {
                 $push: {
-                    applicantDetails: { id: new ObjectId(userId), 
-                    email: email }
+                    applicantDetails: {
+                        id: new ObjectId(userId),
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        address: address,
+                        city: city,
+                        country: country,
+                        gender: gender,
+                        jobAppliedTime: jobAppliedTime,
+                        ISOSPostedDateWhenJobApply: ISOSPostedDateWhenJobApply
+                    }
                 },
                 $set: { applyStatus: applyStatus }
             };
@@ -123,10 +142,34 @@ async function run() {
             res.send({ status: false });
         });
 
+        
+
         app.get("/applied-jobs/:email", async (req, res) => {
             const email = req.params.email;
             const query = { applicantDetails: { $elemMatch: { email: email } } };
-            const cursor = jobsCollection.find(query).project({ applicantDetails: 0 });
+            const cursor = jobsCollection.find(query);
+            const result = await cursor.toArray();
+            console.log("Result:", result);
+            res.send({ status: true, data: result });
+        });
+
+
+        //get the applied jobs data by email and soft the data by date
+        app.get("/filter/appliedJobs//:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { applicantDetails: { $elemMatch: { email: email } } };
+            const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: 1 });
+            const result = await cursor.toArray();
+            console.log("Result:", result);
+            res.send({ status: true, data: result });
+        });
+
+
+        //get the applied jobs data by email and soft the data by date
+        app.get("/noFilter/appliedJobs//:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { applicantDetails: { $elemMatch: { email: email } } };
+            const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: -1 });
             const result = await cursor.toArray();
             console.log("Result:", result);
             res.send({ status: true, data: result });
@@ -148,6 +191,25 @@ async function run() {
             const job = req.body;
             const result = await jobsCollection.insertOne(job);
             res.send({ status: true, data: result });
+        });
+
+        //toggle the job status between open and close
+        app.patch("/toggleJobStatus", async (req, res) => {
+            const jobId = req.body.jobId; //job er Id
+            const jobStatus = req.body.jobStatus;
+            console.log("JobId:", jobId);
+            console.log("Job Status:", jobStatus);
+
+            const filter = { _id: new ObjectId(jobId) };
+
+            const updateDoc = {
+                $set: { jobStatus: !jobStatus }
+            };
+            const result = await jobsCollection.updateOne(filter, updateDoc);
+            if (result.acknowledged) {
+                return res.send({ status: true, data: result });
+            }
+            res.send({ status: false });
         });
 
 
