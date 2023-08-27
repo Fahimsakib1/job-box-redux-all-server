@@ -62,10 +62,11 @@ async function run() {
             const gender = req.body.gender;
             const jobAppliedTime = req.body.jobAppliedTime;
             const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJobApply
-
             const applyStatus = req.body.applyStatus;
 
+
             const filter = { _id: new ObjectId(jobId) };
+
             const updateDoc = {
                 $push: {
                     applicantDetails: {
@@ -90,6 +91,7 @@ async function run() {
             res.send({ status: false });
         });
 
+
         app.patch("/query", async (req, res) => {
             const userId = req.body.userId;
             const jobId = req.body.jobId;
@@ -101,7 +103,8 @@ async function run() {
             const updateDoc = {
                 $push: {
                     queries: {
-                        id: new ObjectId(userId),
+                        id: new ObjectId(userId), //user er id
+                        jobId: jobId, // job er id
                         email: email,
                         question: question,
                         reply: [],
@@ -115,26 +118,62 @@ async function run() {
             res.send({ status: false });
         });
 
+
+
+
         app.patch("/reply", async (req, res) => {
             const userId = req.body.userId;
             const reply = req.body.reply;
+            const jobId = req.body.jobId;
+            const employerEmail = req.body.employerEmail;
+            const question = req.body.question;
+            console.log("Question: ", question);
+
+
             // console.log(reply);
             // console.log(userId); 
+            // console.log(jobId); 
 
-            const filter = { "queries.id": new ObjectId(userId) };
+            // const filter = { "queries.id": new ObjectId(userId) };
+
+            // const updateDoc = {
+            //     $push: {
+            //         "queries.$[user].reply": reply,
+            //     },
+            // };
+
+            // const arrayFilter = {
+            //     arrayFilters: [{ "user.id": new ObjectId(userId) }],
+            // };
+
+
+
+
+
+
+
+
+
+
+
+
+            //this is working perfectly. Employer can add reply to the specific questions and the replies are not added to all the questions
+            const filter = { "queries.jobId": jobId, "queries.question": question };
+            console.log("Filter Data", filter);
 
             const updateDoc = {
                 $push: {
-                    "queries.$[user].reply": reply,
-                },
+                    "queries.$.reply": reply
+                }
             };
-            const arrayFilter = {
-                arrayFilters: [{ "user.id": new ObjectId(userId) }],
-            };
+            const options = { upsert: true }
+
+
+
             const result = await jobsCollection.updateOne(
                 filter,
                 updateDoc,
-                arrayFilter
+                options
             );
             if (result.acknowledged) {
                 return res.send({ status: true, data: result });
@@ -142,7 +181,8 @@ async function run() {
             res.send({ status: false });
         });
 
-        
+
+
 
         app.get("/applied-jobs/:email", async (req, res) => {
             const email = req.params.email;
@@ -206,7 +246,7 @@ async function run() {
         app.get("/filter/:filterValue/:email", async (req, res) => {
             const filterValue = req.params.filterValue;
             const email = req.params.email;
-            
+
             const data = {
                 filterValue,
                 email
@@ -214,14 +254,14 @@ async function run() {
             console.log("Filter Data:", data);
 
             const query = { applicantDetails: { $elemMatch: { email: email } } };
-        
-            if(filterValue === 'filterByDate'){
+
+            if (filterValue === 'filterByDate') {
                 const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: - 1 });
                 const result = await cursor.toArray();
                 res.send({ status: true, data: result });
             }
 
-            if(filterValue === 'filterCancel'){
+            if (filterValue === 'filterCancel') {
                 const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: 1 });
                 const result = await cursor.toArray();
                 res.send({ status: true, data: result });
