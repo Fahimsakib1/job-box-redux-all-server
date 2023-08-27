@@ -33,6 +33,7 @@ async function run() {
     try {
         const usersCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobBoxUsers');
         const jobsCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobBoxJobs');
+        const messagesCollection = client.db('Moon_Tech_Redux_Thunk').collection('JobBoxMessages');
 
 
         app.post("/user", async (req, res) => {
@@ -61,7 +62,8 @@ async function run() {
             const lastName = req.body.lastName;
             const gender = req.body.gender;
             const jobAppliedTime = req.body.jobAppliedTime;
-            const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJobApply
+            const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJobApply;
+            const appliedJob = req.body.appliedJob;
             const applyStatus = req.body.applyStatus;
 
 
@@ -79,6 +81,7 @@ async function run() {
                         country: country,
                         gender: gender,
                         jobAppliedTime: jobAppliedTime,
+                        appliedJob: appliedJob,
                         ISOSPostedDateWhenJobApply: ISOSPostedDateWhenJobApply
                     }
                 },
@@ -241,8 +244,11 @@ async function run() {
 
 
 
+
+
+
         /////////////////////////////////////////////////////////
-        //get the applied jobs data by email and soft the data by date
+        //get the applied jobs data by email and filter the data by date
         app.get("/filter/:filterValue/:email", async (req, res) => {
             const filterValue = req.params.filterValue;
             const email = req.params.email;
