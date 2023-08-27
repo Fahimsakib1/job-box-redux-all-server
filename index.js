@@ -61,7 +61,7 @@ async function run() {
             const lastName = req.body.lastName;
             const gender = req.body.gender;
             const jobAppliedTime = req.body.jobAppliedTime;
-            const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJob
+            const ISOSPostedDateWhenJobApply = req.body.ISOSPostedDateWhenJobApply
 
             const applyStatus = req.body.applyStatus;
 
@@ -118,8 +118,8 @@ async function run() {
         app.patch("/reply", async (req, res) => {
             const userId = req.body.userId;
             const reply = req.body.reply;
-            console.log(reply);
-            console.log(userId);
+            // console.log(reply);
+            // console.log(userId); 
 
             const filter = { "queries.id": new ObjectId(userId) };
 
@@ -149,31 +149,9 @@ async function run() {
             const query = { applicantDetails: { $elemMatch: { email: email } } };
             const cursor = jobsCollection.find(query);
             const result = await cursor.toArray();
-            console.log("Result:", result);
             res.send({ status: true, data: result });
         });
 
-
-        //get the applied jobs data by email and soft the data by date
-        app.get("/filter/appliedJobs//:email", async (req, res) => {
-            const email = req.params.email;
-            const query = { applicantDetails: { $elemMatch: { email: email } } };
-            const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: 1 });
-            const result = await cursor.toArray();
-            console.log("Result:", result);
-            res.send({ status: true, data: result });
-        });
-
-
-        //get the applied jobs data by email and soft the data by date
-        app.get("/noFilter/appliedJobs//:email", async (req, res) => {
-            const email = req.params.email;
-            const query = { applicantDetails: { $elemMatch: { email: email } } };
-            const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: -1 });
-            const result = await cursor.toArray();
-            console.log("Result:", result);
-            res.send({ status: true, data: result });
-        });
 
         app.get("/jobs", async (req, res) => {
             const cursor = jobsCollection.find({});
@@ -197,8 +175,8 @@ async function run() {
         app.patch("/toggleJobStatus", async (req, res) => {
             const jobId = req.body.jobId; //job er Id
             const jobStatus = req.body.jobStatus;
-            console.log("JobId:", jobId);
-            console.log("Job Status:", jobStatus);
+            // console.log("JobId:", jobId);
+            // console.log("Job Status:", jobStatus);
 
             const filter = { _id: new ObjectId(jobId) };
 
@@ -210,6 +188,45 @@ async function run() {
                 return res.send({ status: true, data: result });
             }
             res.send({ status: false });
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+        /////////////////////////////////////////////////////////
+        //get the applied jobs data by email and soft the data by date
+        app.get("/filter/:filterValue/:email", async (req, res) => {
+            const filterValue = req.params.filterValue;
+            const email = req.params.email;
+            
+            const data = {
+                filterValue,
+                email
+            }
+            console.log("Filter Data:", data);
+
+            const query = { applicantDetails: { $elemMatch: { email: email } } };
+        
+            if(filterValue === 'filterByDate'){
+                const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: - 1 });
+                const result = await cursor.toArray();
+                res.send({ status: true, data: result });
+            }
+
+            if(filterValue === 'filterCancel'){
+                const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: 1 });
+                const result = await cursor.toArray();
+                res.send({ status: true, data: result });
+            }
+
         });
 
 
