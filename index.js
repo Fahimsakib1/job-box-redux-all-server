@@ -85,7 +85,7 @@ async function run() {
                         ISOSPostedDateWhenJobApply: ISOSPostedDateWhenJobApply
                     }
                 },
-                $set: { applyStatus: applyStatus }
+                $set: { applyStatus: applyStatus, texts: [] }
             };
             const result = await jobsCollection.updateOne(filter, updateDoc);
             if (result.acknowledged) {
@@ -272,6 +272,91 @@ async function run() {
                 const result = await cursor.toArray();
                 res.send({ status: true, data: result });
             }
+        });
+
+
+
+        // ******************** Messaging by both employer and candidate Starts ****************** //
+        app.patch("/messageByEmployer", async (req, res) => {
+
+            const candidateFullName = req.body.candidateFullName;
+            const candidateEmail = req.body.candidateEmail;
+            const appliedJob = req.body.appliedJob;
+            const employerFullName = req.body.employerFullName;
+            const employerEmail = req.body.employerEmail;
+            const candidateID = req.body.candidateID;
+            const messageSentTime = req.body.messageSentTime;
+            const jobId = req.body.jobId;
+            const message = req.body.message;
+            const userId = req.body.userId;
+
+            // const employerID = req.body.employerID;  
+
+
+            console.log("Candidate Full Name:", candidateFullName);
+            console.log("Candidate Email:", candidateEmail);
+            console.log("Job:", appliedJob);
+            console.log("Employer Full Name:", employerFullName);
+            console.log("Employer Email:", employerEmail);
+            console.log("Candidate ID:", candidateID);
+            console.log("Job ID:", jobId);
+            console.log("Message:", message);
+            console.log("User ID:", userId);
+
+
+            const filter = { _id: new ObjectId(jobId) };
+            const updateDoc = {
+                $push: {
+                    texts: {
+                        userId: new ObjectId(userId), //user er id
+                        jobId: jobId, // job er id
+                        candidateFullName: candidateFullName,
+                        candidateEmail: candidateEmail,
+                        candidateID: candidateID,
+                        appliedJob: appliedJob,
+                        employerFullName: employerFullName,
+                        employerEmail: employerEmail,
+                        message: message,
+                        messageSentTime: messageSentTime,
+                        replyMessage: [],
+                    },
+                },
+            };
+            const result = await jobsCollection.updateOne(filter, updateDoc);
+            if (result?.acknowledged) {
+                return res.send(result);
+            }
+            res.send({ status: false });
+        });
+
+
+        
+        
+        //get all the messages send by an employee to a particular candidate fetched by candidate email
+        // app.get("/employee/messages/:email", async (req, res) => {
+        //     const email = req.params.email;
+        //     const query = { texts: { $elemMatch: { candidateEmail: email } } };
+        //     const cursor = jobsCollection.find(query).project({ texts: 1 });
+        //     const result = await cursor.toArray();
+        //     res.send(result);
+        // });
+
+
+
+
+
+        //get all the messages send by an employee to a particular candidate fetched by candidate email
+        app.get("/employer/messages/:appliedJob/:email", async (req, res) => {
+            const email = req.params.email;
+            const appliedJob = req.params.appliedJob;
+            const query = { texts: { $elemMatch: { candidateEmail: email, appliedJob: appliedJob } } };
+            const result = await jobsCollection.find(query).project({ texts: 1 }).toArray();
+
+
+
+            const filteredData = result.map(doc => doc.texts.filter(item => item.candidateEmail === email));
+            console.log("Only The Main Data: ", filteredData);
+            res.send(filteredData[0]);
 
         });
 
