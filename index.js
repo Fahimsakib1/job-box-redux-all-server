@@ -85,7 +85,7 @@ async function run() {
                         ISOSPostedDateWhenJobApply: ISOSPostedDateWhenJobApply
                     }
                 },
-                $set: { applyStatus: applyStatus, texts: [] }
+                $set: { applyStatus: applyStatus, employerTexts: [], candidateReply: [] }
             };
             const result = await jobsCollection.updateOne(filter, updateDoc);
             if (result.acknowledged) {
@@ -95,14 +95,13 @@ async function run() {
         });
 
 
+
         app.patch("/query", async (req, res) => {
             const userId = req.body.userId;
             const jobId = req.body.jobId;
             const email = req.body.email;
             const question = req.body.question;
-
             const filter = { _id: new ObjectId(jobId) };
-
             const updateDoc = {
                 $push: {
                     queries: {
@@ -123,56 +122,20 @@ async function run() {
 
 
 
-
+        //this is working perfectly. Employer can add reply to the specific questions and the replies are not added to all the questions
         app.patch("/reply", async (req, res) => {
             const userId = req.body.userId;
             const reply = req.body.reply;
             const jobId = req.body.jobId;
             const employerEmail = req.body.employerEmail;
             const question = req.body.question;
-            console.log("Question: ", question);
-
-
-            // console.log(reply);
-            // console.log(userId); 
-            // console.log(jobId); 
-
-            // const filter = { "queries.id": new ObjectId(userId) };
-
-            // const updateDoc = {
-            //     $push: {
-            //         "queries.$[user].reply": reply,
-            //     },
-            // };
-
-            // const arrayFilter = {
-            //     arrayFilters: [{ "user.id": new ObjectId(userId) }],
-            // };
-
-
-
-
-
-
-
-
-
-
-
-
-            //this is working perfectly. Employer can add reply to the specific questions and the replies are not added to all the questions
             const filter = { "queries.jobId": jobId, "queries.question": question };
-            console.log("Filter Data", filter);
-
             const updateDoc = {
                 $push: {
                     "queries.$.reply": reply
                 }
             };
             const options = { upsert: true }
-
-
-
             const result = await jobsCollection.updateOne(
                 filter,
                 updateDoc,
@@ -218,11 +181,7 @@ async function run() {
         app.patch("/toggleJobStatus", async (req, res) => {
             const jobId = req.body.jobId; //job er Id
             const jobStatus = req.body.jobStatus;
-            // console.log("JobId:", jobId);
-            // console.log("Job Status:", jobStatus);
-
             const filter = { _id: new ObjectId(jobId) };
-
             const updateDoc = {
                 $set: { jobStatus: !jobStatus }
             };
@@ -247,26 +206,21 @@ async function run() {
 
 
 
-        /////////////////////////////////////////////////////////
+
         //get the applied jobs data by email and filter the data by date
         app.get("/filter/:filterValue/:email", async (req, res) => {
             const filterValue = req.params.filterValue;
             const email = req.params.email;
-
             const data = {
                 filterValue,
                 email
             }
-            console.log("Filter Data:", data);
-
             const query = { applicantDetails: { $elemMatch: { email: email } } };
-
             if (filterValue === 'filterByDate') {
                 const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: - 1 });
                 const result = await cursor.toArray();
                 res.send({ status: true, data: result });
             }
-
             if (filterValue === 'filterCancel') {
                 const cursor = jobsCollection.find(query).sort({ ISOSPostedDate: 1 });
                 const result = await cursor.toArray();
@@ -276,9 +230,14 @@ async function run() {
 
 
 
-        // ******************** Messaging by both employer and candidate Starts ****************** //
-        app.patch("/messageByEmployer", async (req, res) => {
 
+
+
+
+        // ******************** Messaging by both employer and candidate Starts ****************** //
+
+        //send message by an employer to a candidate for a particular job position
+        app.patch("/messageByEmployer", async (req, res) => {
             const candidateFullName = req.body.candidateFullName;
             const candidateEmail = req.body.candidateEmail;
             const appliedJob = req.body.appliedJob;
@@ -289,27 +248,14 @@ async function run() {
             const jobId = req.body.jobId;
             const message = req.body.message;
             const userId = req.body.userId;
-
-            // const employerID = req.body.employerID;  
-
-
-            console.log("Candidate Full Name:", candidateFullName);
-            console.log("Candidate Email:", candidateEmail);
-            console.log("Job:", appliedJob);
-            console.log("Employer Full Name:", employerFullName);
-            console.log("Employer Email:", employerEmail);
-            console.log("Candidate ID:", candidateID);
-            console.log("Job ID:", jobId);
-            console.log("Message:", message);
-            console.log("User ID:", userId);
-
-
+            const randomNumber = req.body.randomNumber;
             const filter = { _id: new ObjectId(jobId) };
             const updateDoc = {
                 $push: {
-                    texts: {
+                    employerTexts: {
                         userId: new ObjectId(userId), //user er id
                         jobId: jobId, // job er id
+                        randomNumber:randomNumber,
                         candidateFullName: candidateFullName,
                         candidateEmail: candidateEmail,
                         candidateID: candidateID,
@@ -330,35 +276,88 @@ async function run() {
         });
 
 
-        
-        
-        //get all the messages send by an employee to a particular candidate fetched by candidate email
-        // app.get("/employee/messages/:email", async (req, res) => {
-        //     const email = req.params.email;
-        //     const query = { texts: { $elemMatch: { candidateEmail: email } } };
-        //     const cursor = jobsCollection.find(query).project({ texts: 1 });
-        //     const result = await cursor.toArray();
-        //     res.send(result);
-        // });
-
-
-
 
 
         //get all the messages send by an employee to a particular candidate fetched by candidate email
         app.get("/employer/messages/:appliedJob/:email", async (req, res) => {
             const email = req.params.email;
             const appliedJob = req.params.appliedJob;
-            const query = { texts: { $elemMatch: { candidateEmail: email, appliedJob: appliedJob } } };
-            const result = await jobsCollection.find(query).project({ texts: 1 }).toArray();
-
-
-
-            const filteredData = result.map(doc => doc.texts.filter(item => item.candidateEmail === email));
-            console.log("Only The Main Data: ", filteredData);
+            const query = { employerTexts: { $elemMatch: { candidateEmail: email, appliedJob: appliedJob } } };
+            const result = await jobsCollection.find(query).project({ employerTexts: 1 }).toArray();
+            const filteredData = result.map(doc => doc.employerTexts.filter(item => item.candidateEmail === email));
             res.send(filteredData[0]);
-
         });
+
+
+
+
+
+
+
+
+
+        //reply message by a candidate to an employer's message for a particular job position
+        
+        
+        
+        //// ********************** This is Main *************************
+        app.patch("/replyByCandidate", async (req, res) => {
+            const candidateEmail = req.body.candidateEmail;
+            const appliedJob = req.body.appliedJob;
+            const candidateID = req.body.candidateID;
+            const replyTime = req.body.replyTime;
+            const jobId = req.body.jobId;
+            const reply = req.body.reply;
+            const filter = { _id: new ObjectId(jobId) };
+            const updateDoc = {
+                $push: {
+                    candidateReply: {
+                        candidateID: new ObjectId(candidateID), //user mane candidate j reply korbe tar id
+                        jobId: jobId, // job er id
+                        candidateEmail: candidateEmail,
+                        appliedJob: appliedJob,
+                        reply: reply,
+                        replyTime: replyTime,
+                    },
+                },
+            };
+            const result = await jobsCollection.updateOne(filter, updateDoc);
+            if (result?.acknowledged) {
+                return res.send(result);
+            }
+            res.send({ status: false });
+        });
+
+
+
+
+
+
+        
+
+
+        //get all the replies send by the candidate to the employer on a particular job position fetched by candidate email and job name
+        app.get("/candidate/replies/:jobId/:email", async (req, res) => {
+            const email = req.params.email;
+            const jobId = req.params.jobId;
+            const query = { candidateReply: { $elemMatch: { candidateEmail: email, jobId: jobId } } };
+            const result = await jobsCollection.find(query).project({ candidateReply: 1 }).toArray();
+            const filteredData = result.map(doc => doc.candidateReply.filter(item => item.candidateEmail === email));
+            console.log("Main Reply Result: ", filteredData);
+            res.send(filteredData[0]);
+        });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     }
