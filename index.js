@@ -343,7 +343,7 @@ async function run() {
             const query = { candidateReply: { $elemMatch: { candidateEmail: email, jobId: jobId } } };
             const result = await jobsCollection.find(query).project({ candidateReply: 1 }).toArray();
             const filteredData = result.map(doc => doc.candidateReply.filter(item => item.candidateEmail === email));
-            console.log("Main Reply Result: ", filteredData);
+            // console.log("Main Reply Result: ", filteredData);
             res.send(filteredData[0]);
         });
 
