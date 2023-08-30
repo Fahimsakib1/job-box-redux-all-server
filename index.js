@@ -247,6 +247,7 @@ async function run() {
             const messageSentTime = req.body.messageSentTime;
             const jobId = req.body.jobId;
             const message = req.body.message;
+            const imageLink = req.body.imageLink;
             const userId = req.body.userId;
             const randomNumber = req.body.randomNumber;
             const filter = { _id: new ObjectId(jobId) };
@@ -263,6 +264,7 @@ async function run() {
                         employerFullName: employerFullName,
                         employerEmail: employerEmail,
                         message: message,
+                        imageLink: imageLink,
                         messageSentTime: messageSentTime,
                         replyMessage: [],
                     },
@@ -308,6 +310,7 @@ async function run() {
             const replyTime = req.body.replyTime;
             const jobId = req.body.jobId;
             const reply = req.body.reply;
+            const replyImageLink = req.body.replyImageLink;
             const filter = { _id: new ObjectId(jobId) };
             const updateDoc = {
                 $push: {
@@ -317,6 +320,7 @@ async function run() {
                         candidateEmail: candidateEmail,
                         appliedJob: appliedJob,
                         reply: reply,
+                        replyImageLink: replyImageLink,
                         replyTime: replyTime,
                     },
                 },
